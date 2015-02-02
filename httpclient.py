@@ -37,16 +37,24 @@ class HTTPClient(object):
 
     def connect(self, host, port):
         # use sockets!
+		if(port == None):
+            port = 80
+		
+		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		s.connect((host,port))
         return None
 
     def get_code(self, data):
-        return None
+        response = data.split("\r\n\r\n", 1)	
+		line = response[0].split("\r\n", 1)[0]
+		code = int(line.split(" ")[1])
+        return code
 
     def get_headers(self,data):
-        return None
+        return data.split('\r\n\r\n')[0]
 
     def get_body(self, data):
-        return None
+        return data.split('\r\n\r\n')[1]
 
     # read everything from the socket
     def recvall(self, sock):
@@ -61,11 +69,32 @@ class HTTPClient(object):
         return str(buffer)
 
     def GET(self, url, args=None):
-        code = 500
-        body = ""
+		url = urlparse(url)
+        if(directory == ''):
+            directory = '/'
+		
+		header = 'GET ' + url.path + ' HTTP/1.1\r\n'
+        header += 'Host: ' + url.hostname + '\r\n'
+        header += 'Accept: */*\r\n'
+        header += 'Connection: close\r\n'
+        header += '\r\n'
+		
+		connection = self.connect(url.hostname, url.port)
+		connection.send(header)
+		response = self.recvall(connection)
+		
+        code = int(self.get_code(response))
+        body = self.get_body(response)
+
         return HTTPRequest(code, body)
 
     def POST(self, url, args=None):
+		url = urlparse(url)
+        host = url.hostname
+        directory = url.path
+        if(directory == ''):
+            directory = '/'
+	
         code = 500
         body = ""
         return HTTPRequest(code, body)
