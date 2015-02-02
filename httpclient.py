@@ -70,10 +70,11 @@ class HTTPClient(object):
 
     def GET(self, url, args=None):
 		url = urlparse(url)
+		directory = url.path
         if(directory == ''):
             directory = '/'
 		
-		header = 'GET ' + url.path + ' HTTP/1.1\r\n'
+		header = 'GET ' + directory + ' HTTP/1.1\r\n'
         header += 'Host: ' + url.hostname + '\r\n'
         header += 'Accept: */*\r\n'
         header += 'Connection: close\r\n'
@@ -90,13 +91,35 @@ class HTTPClient(object):
 
     def POST(self, url, args=None):
 		url = urlparse(url)
-        host = url.hostname
         directory = url.path
         if(directory == ''):
             directory = '/'
-	
-        code = 500
-        body = ""
+		
+		if(args == None):
+            bodyLen = 0;
+        else:
+            body = urllib.urlencode(args)
+            bodyLen = len(body)            
+
+        header = 'POST ' + directory + ' HTTP/1.1\r\n'
+        header += 'Host: ' + url.hostname + '\r\n'
+        header += 'Accept: */*\r\n'
+        header += 'Content-Length: ' + str(bodyLen) + '\r\n'
+        header += 'Content-Type:application/x-www-form-urlencoded \r\n'
+        header += 'Connection: close\r\n'
+        header += '\r\n'
+		
+        #if(content_length > 0):
+        #    header += body
+        #    header += '\r\n\r\n'
+
+        connection = self.connect(url.hostname, url.port)
+		connection.send(header)
+		response = self.recvall(connection)
+		
+        code = int(self.get_code(response))
+        body = self.get_body(response)
+
         return HTTPRequest(code, body)
 
     def command(self, url, command="GET", args=None):
