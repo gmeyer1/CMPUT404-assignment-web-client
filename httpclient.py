@@ -23,6 +23,7 @@ import socket
 import re
 # you may use urllib to encode data appropriately
 import urllib
+import urlparse
 
 def help():
     print "httpclient.py [GET/POST] [URL]\n"
@@ -37,17 +38,26 @@ class HTTPClient(object):
 
     def connect(self, host, port):
         # use sockets!
-		if(port == None):
-            port = 80
-		
-		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		s.connect((host,port))
-        return None
+	if(port == None):
+	   port = 80
+	
+	try:	
+		connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	except socket.error, msg:
+		print('Failed to create socket. ' +
+		'Error code: ' + str(msg[0]) + ' , Error message: ' + msg[1])
+
+	try:
+		connection.connect((host,port))
+	except socket.error, msg:
+		print('Failed to connect. ' +
+		'Error code: ' + str(msg[0]) + ' , Error message: ' + msg[1])
+        return connection
 
     def get_code(self, data):
-        response = data.split("\r\n\r\n", 1)	
-		line = response[0].split("\r\n", 1)[0]
-		code = int(line.split(" ")[1])
+        response = data.split("\r\n\r\n", 1)
+	line = response[0].split("\r\n", 1)[0]
+	code = int(line.split(" ")[1])
         return code
 
     def get_headers(self,data):
@@ -69,20 +79,20 @@ class HTTPClient(object):
         return str(buffer)
 
     def GET(self, url, args=None):
-		url = urlparse(url)
-		directory = url.path
+	url = urlparse.urlparse(url)
+	directory = url.path
         if(directory == ''):
             directory = '/'
 		
-		header = 'GET ' + directory + ' HTTP/1.1\r\n'
+	header = 'GET ' + directory + ' HTTP/1.1\r\n'
         header += 'Host: ' + url.hostname + '\r\n'
         header += 'Accept: */*\r\n'
         header += 'Connection: close\r\n'
         header += '\r\n'
 		
-		connection = self.connect(url.hostname, url.port)
-		connection.send(header)
-		response = self.recvall(connection)
+	connection = self.connect(url.hostname, url.port)
+	connection.send(header)
+	response = self.recvall(connection)
 		
         code = int(self.get_code(response))
         body = self.get_body(response)
@@ -90,12 +100,12 @@ class HTTPClient(object):
         return HTTPRequest(code, body)
 
     def POST(self, url, args=None):
-		url = urlparse(url)
+	url = urlparse.urlparse(url)
         directory = url.path
         if(directory == ''):
             directory = '/'
 		
-		if(args == None):
+	if(args == None):
             bodyLen = 0;
         else:
             body = urllib.urlencode(args)
@@ -109,13 +119,13 @@ class HTTPClient(object):
         header += 'Connection: close\r\n'
         header += '\r\n'
 		
-        #if(content_length > 0):
-        #    header += body
-        #    header += '\r\n\r\n'
+        if(bodyLen > 0):
+            header += body
+            header += '\r\n\r\n'
 
         connection = self.connect(url.hostname, url.port)
-		connection.send(header)
-		response = self.recvall(connection)
+	connection.send(header)
+	response = self.recvall(connection)
 		
         code = int(self.get_code(response))
         body = self.get_body(response)
@@ -135,6 +145,6 @@ if __name__ == "__main__":
         help()
         sys.exit(1)
     elif (len(sys.argv) == 3):
-        print client.command( sys.argv[1], sys.argv[2] )
+        print client.command( sys.argv[2], sys.argv[1] )
     else:
-        print client.command( command, sys.argv[1] )    
+        print client.command( sys.argv[1], command )    
