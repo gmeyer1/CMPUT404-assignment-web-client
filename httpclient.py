@@ -42,12 +42,14 @@ class HTTPClient(object):
 	if(port == None):
 	   port = 80
 	
+	# try to create socket
 	try:	
 		connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	except socket.error, msg:
 		print('Failed to create socket. ' +
 		'Error code: ' + str(msg[0]) + ' , Error message: ' + msg[1])
 
+	# try to connect to socket
 	try:
 		connection.connect((host,port))
 	except socket.error, msg:
@@ -55,15 +57,18 @@ class HTTPClient(object):
 		'Error code: ' + str(msg[0]) + ' , Error message: ' + msg[1])
         return connection
 
+    # extract code from response
     def get_code(self, data):
         response = data.split("\r\n\r\n", 1)
 	line = response[0].split("\r\n", 1)[0]
 	code = int(line.split(" ")[1])
         return code
 
+    # extract header from response (doesn't appear to be needed)
     def get_headers(self,data):
         return data.split('\r\n\r\n')[0]
 
+    # extract body from response
     def get_body(self, data):
         return data.split('\r\n\r\n')[1]
 
@@ -79,39 +84,48 @@ class HTTPClient(object):
                 done = not part
         return str(buffer)
 
+    # perform HTTP GET
     def GET(self, url, args=None):
+    	# parse URL
 	url = urlparse.urlparse(url)
 	directory = url.path
         if(directory == ''):
             directory = '/'
-		
+	
+	# construct header	
 	header = 'GET ' + directory + ' HTTP/1.1\r\n'
         header += 'Host: ' + url.hostname + '\r\n'
         header += 'Accept: */*\r\n'
         header += 'Connection: close\r\n'
         header += '\r\n'
-		
+	
+	# connect and send request	
 	connection = self.connect(url.hostname, url.port)
 	connection.send(header)
 	response = self.recvall(connection)
-		
+	
+	# extract code and body from response	
         code = int(self.get_code(response))
         body = self.get_body(response)
 
         return HTTPRequest(code, body)
 
+    # perform HTTP POST
     def POST(self, url, args=None):
+    	# parse URL
 	url = urlparse.urlparse(url)
         directory = url.path
         if(directory == ''):
             directory = '/'
-		
+	
+	# get body and set length	
 	if(args == None):
             bodyLen = 0;
         else:
             body = urllib.urlencode(args)
             bodyLen = len(body)            
-
+	
+	# construct header
         header = 'POST ' + directory + ' HTTP/1.1\r\n'
         header += 'Host: ' + url.hostname + '\r\n'
         header += 'Accept: */*\r\n'
@@ -119,15 +133,18 @@ class HTTPClient(object):
         header += 'Content-Type:application/x-www-form-urlencoded \r\n'
         header += 'Connection: close\r\n'
         header += '\r\n'
-		
+	
+	# add body if there is one	
         if(bodyLen > 0):
             header += body
 	    header += '\r\n'
 
+	# connect and send request
         connection = self.connect(url.hostname, url.port)
 	connection.send(header)
 	response = self.recvall(connection)
-		
+	
+	# extract code and body from response	
         code = int(self.get_code(response))
         body = self.get_body(response)
 
