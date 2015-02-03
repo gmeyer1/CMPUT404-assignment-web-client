@@ -12,7 +12,7 @@ Contributors / Licensing
 
 Generally everything is LICENSE'D under the Apache 2 license by Abram Hindle.
 
-httpclient.y contains contributions from:
+httpclient.py contains contributions from:
 
 * Abram Hindle
 * Glenn Meyer
